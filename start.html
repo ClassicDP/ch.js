@@ -15,7 +15,7 @@
 
 
 <div id="xControl">
-    
+
 </div>
 
 
@@ -23,5 +23,17 @@
 <script src="board_classes.js"> </script>
 
 <script src="board.js"> </script>
+<script src="websocket.js"> </script>
+
+
+<body>
+    <button id="b1" onClick="initWebSocket();">Connect</button>
+    <br>
+    <input type="text" id="messageInput">
+    <button onClick="sendMessage();">Send message</button>
+</body>
+
+
+
 
 </html>

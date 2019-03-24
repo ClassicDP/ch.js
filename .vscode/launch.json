@@ -4,11 +4,13 @@
     // Для получения дополнительной информации посетите: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        
+        
         {
             "name": "Launch index.html",
             "type": "chrome",
             "request": "launch",
-            "file": "C:/Users/Dmitry/Documents/js/start.html"    
+            "file": "C:/Users/Dmitry/Documents/ch.js/start.html"    
             }
     ]
 }

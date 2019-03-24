@@ -21,6 +21,7 @@ function xDrawBoard () {
   wBoard.style.top = '5%'
   wBoard.style.left = '5%'
   wBoard.style.outline = '2px solid #817162'
+  wBoard.style.outlineOffset = '-1px '
   wBoard.style.backgroundColor = '#EADACA'
   sW = wBoard.clientWidth / bParams.size
   sH = wBoard.clientWidth * 0.05
@@ -68,6 +69,7 @@ for (i = 0;i < elems.length;i++) {
 
 var bParams = {}
 bParams.size = 8
+bParams.id=-1
 bParams.side = 'black'
 var wBoard = document.createElement('div')
 var brd = document.getElementById('board')
