@@ -4,36 +4,27 @@
 <head>
     <meta charset="UTF-8">
     <title>Страница </title>
+    <link href="external.css" rel="stylesheet">
 </head>
 
-<link href="external.css" rel="stylesheet">
 
-
-<div id="board">
-</div>
-
-
-
-<div id="xControl">
-
-</div>
-
-
-
-<script src="board_classes.js"> </script>
-
-<script src="board.js"> </script>
-<script src="websocket.js"> </script>
-
-
-<body>
+<body class="noselect">
+    <div id="board">
+    </div>
+    <div id="xControl">
+    </div>
     <button id="b1" onClick="initWebSocket();">Connect</button>
     <br>
     <input type="text" id="messageInput">
     <button onClick="sendMessage();">Send message</button>
+    
 </body>
 
 
+<script src="svg.js"> </script>
+<script src="board.js"> </script>
+<script src="board_classes.js"> </script>
+<script src="websocket.js"> </script>
 
 
 </html>

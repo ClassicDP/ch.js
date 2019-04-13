@@ -3,7 +3,7 @@
 
 #include <QtWebSockets>
 #include <QtCore>
-
+#include <socketfunct.h>
 #include <cstdio>
 using namespace std;
 
@@ -25,24 +25,27 @@ Server::Server(quint16 port, QObject *parent) :
                                             QWebSocketServer::NonSecureMode,
                                             this))
 {
+
     if (m_pWebSocketServer->listen(QHostAddress::Any, port))
     {
         QTextStream(stdout) << "Server listening on port " << port << '\n';
         connect(m_pWebSocketServer, &QWebSocketServer::newConnection,
                 this, &Server::onNewConnection);
     }
-    xC=new xCommands(list);
+    list=new xClientList();
 }
 
 Server::~Server()
 {
     m_pWebSocketServer->close();
+    delete list;
 }
 //! [constructor]
 
 //! [onNewConnection]
 void Server::onNewConnection()
 {
+
     pSocket = m_pWebSocketServer->nextPendingConnection();
     QTextStream(stdout) << getIdentifier(pSocket) << " connected!\n";
     pSocket->setParent(this);
@@ -51,25 +54,28 @@ void Server::onNewConnection()
             this, &Server::processMessage);
     connect(pSocket, &QWebSocket::disconnected,
             this, &Server::socketDisconnected);
-
-    m_clients << pSocket;
-    auto thread=new xSocketThread(pSocket);
-    connect(thread, &xSocketThread::sendMsg,
-            this, &Server::sendMessage);
-
-    list << *new xClient(pSocket, thread);
-
+    auto xClient=new xSocketClient(list, pSocket);
+//    m_clients << new _client(pSocket,thread);
+    connect(pSocket, &QWebSocket::textMessageReceived,
+            xClient, &xSocketClient::SocketMsg, Qt::QueuedConnection);
+    connect(xClient, &xSocketClient::sendMsg,
+            this, &Server::sendMessage, Qt::QueuedConnection);
+    QThread* thread = new QThread;
+    xClient->moveToThread(thread);
+    connect(xClient, SIGNAL (error(QString)), this, SLOT (errorString(QString)));
+    connect(thread, SIGNAL (started()), xClient, SLOT (start()));
+    connect(xClient, SIGNAL (finished()), thread, SLOT (quit()));
+    connect(xClient, SIGNAL (finished()), xClient, SLOT (deleteLater()));
+    connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));
     thread->start();
-
-
-    //    pSocket->sendTextMessage(getIdentifier(pSocket));
+    QThread * xThread= new QThread;
+    xClient->moveToThread(xThread);
 }
 //! [onNewConnection]
 
 //! [processMessage]
-void Server::processMessage(const QString &message)
+void Server::processMessage( const QString &message)
 {
-    xC->actions(jsonFromString(message));
     //    QWebSocket *pSender = qobject_cast<QWebSocket *>(sender());
     //    for (QWebSocket *pClient : qAsConst(m_clients)) {
     //        if (pClient != pSender) //don't echo message back to sender
@@ -77,64 +83,49 @@ void Server::processMessage(const QString &message)
     //    }
 }
 
-void Server::sendMessage(QString msg)
-{
-    pSocket->sendTextMessage(msg);
+//_client *Server::searchBySocket(QWebSocket *socket)
+//{
+//    foreach(auto it, m_clients) {
+//        if (it->socket==socket)  return it;
+//    }
+//    return NULL;
+//}
+
+void Server::sendMessage(QWebSocket * socket, QString msg)
+{    
+    mutex.lock();
+//    if (!searchBySocket(socket)) {qDebug () << "--NoSocket!"; mutex.unlock(); return;}
+    socket->sendTextMessage(msg);
+    mutex.unlock();
 }
 //! [processMessage]
 
 //! [socketDisconnected]
 void Server::socketDisconnected()
 {
+    mutex.lock();
     QWebSocket *pClient = qobject_cast<QWebSocket *>(sender());
     QTextStream(stdout) << getIdentifier(pClient) << " disconnected!\n";
-    if (pClient)
+//    _client * client=searchBySocket(pClient);
+//    pClient->abort();
+//    pClient->deleteLater();
+//    if (client)
     {
-        m_clients.removeAll(pClient);
-        pClient->deleteLater();
+
+//        m_clients.removeAll(client);
+
+//        delete client;
     }
+    mutex.unlock();
+    qDebug () << "Disc complete";
 }
 //! [socketDisconnected]
 
-xCommands::xCommands(xClientList list):list(list){}
 
-QString xCommands::GivId()
-{
-    QJsonObject js;
-    js["cmd"]="AskId";
-    return jsonToString(QJsonObject(js));
-}
+//_client::_client(QWebSocket *socket, QThread *thread):socket(socket),thread(thread){
+//    connect(this, SIGNAL(quitThread()), thread, SLOT(quit()));
+//}
 
-void xCommands::actions(QJsonObject js)
-{
-    if (js["cmd"]=="Id") {
-        if (!list.seek(js["Id"].toInt())) list.insert(js["Id"].toInt());
-    }
-}
+//bool _client::operator ==(const _client &a) {return (socket==a.socket && thread==a.thread);}
 
-bool xClientList::seek(QString user) {
-    for (auto it:*this)
-        if (it.sGetUserId()==user) return true;
-    return false;
-}
-
-bool xClientList::seek(int user) {
-    for (auto it:*this)
-        if (it.iGetUserId()==user) return true;
-    return false;
-}
-
-void xClientList::insert(xClient user) {
-    if (!seek(user.iGetUserId())) this->append(user);
-}
-
-void xClientList::insert(int user) {
-    if (!seek(user)) this->append(xClient(user));
-}
-
-QString xClientList::NewUserId()
-{
-    int max=first().iGetUserId();
-    for (auto it:*this) if (max<it.iGetUserId()) max=it.iGetUserId();
-    return QString(max+1);
-}
+//_client::~_client() {qDebug () << "quit"; thread->quit(); }

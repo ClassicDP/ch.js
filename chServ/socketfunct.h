@@ -8,86 +8,42 @@
 #include "QJsonDocument"
 #include "QWebSocket"
 #include "QDebug"
+#include "QEventLoop"
+//#include "server.h"
+#include "client.h"
 
 QString jsonToString(QJsonObject json);
 QJsonObject jsonFromString(const QString& in);
-class xWaitMsg : public QThread
-{
-    int _timeOut;
-    bool receivedMsg;
-    Q_OBJECT
-public:
-    xWaitMsg(int _timeOut ) : _timeOut(_timeOut)
-    {
-    }
-    void run()
-    {
-        auto startT=QDateTime::currentSecsSinceEpoch();
-        receivedMsg=false;
-        while (QDateTime::currentSecsSinceEpoch()-startT<_timeOut)
-            if (receivedMsg) {qDebug() <<"msg!"; break;}
-        exec();
-    }
-public slots:
-    void resMsg()
-    {
-        receivedMsg=true;
-    }
 
-};
-
-class xSocketThread : public QThread {
+class xSocketClient : public QObject{
     Q_OBJECT
 private:
-
     bool msgRes;
-    QString msg;
-    xWaitMsg * waitClient;
+    QTimer *timer;
     QWebSocket *socket;
+    QString msg;
+    xClient *client=NULL;
+    xClientList *list;
 public:
-    xSocketThread(QWebSocket *socket ) : socket(socket)
-    {
-        waitClient = new xWaitMsg(5);
-        connect(socket, &QWebSocket::textMessageReceived,
-                this, &xSocketThread::SocketMsg);
-        connect(this, &xSocketThread::_msgRes, waitClient,  &xWaitMsg::resMsg);
-    }
+    QMutex mutex;
+    xSocketClient(xClientList *list, QWebSocket * socket);
 
-    void run()
-    {
-       QJsonObject js;
-        auto res=CallFunct("GetId", js);
-        qDebug () << res;
-        exec();
-    }
-    QJsonObject CallFunct(QString functName, QJsonObject args)
-    {
-        QJsonObject js;
-        js["cmd"]="Call";
-        js["funct"]=functName;
-        js["args"]=args;
-        msgRes=false;
-        waitClient->start();
-        emit sendMsg(jsonToString(js));
-        waitClient->wait();
-        if (msgRes) return jsonFromString(msg);
-        QJsonObject ret;
-        ret["error"]="time_out";
-        return ret;
-    }
+    void processCmd(QJsonObject & js);
+    ~xSocketClient();
 
 signals:
     void _msgRes ();
-    void sendMsg(QString);
+    void loopExit();
+    void sendMsg(QWebSocket *, QString);
+    void timerStart(int );
+    void timerStop();
+
 
 public slots:
-    void SocketMsg(QString msg)
-    {
-        this->msg=msg; msgRes=true;
-        emit _msgRes();
-        QJsonObject js=jsonFromString(msg);
-        if (js["funct"]=="functName") {this->msg=msg; msgRes=true;}
-    }
+    void start ();
+    void SocketMsg(QString msg);
+    QJsonObject CallFunct(QString functName, QJsonObject args);
+    void timeOUT();
 };
 
 

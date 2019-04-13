@@ -8,8 +8,9 @@
 #include <QJsonDocument>
 #include <QWebSocket>
 #include <QThread>
+#include <QMutex>
 #include "socketfunct.h"
-
+#include "game.h"
 
 
 QT_FORWARD_DECLARE_CLASS(QWebSocketServer)
@@ -18,61 +19,23 @@ QT_FORWARD_DECLARE_CLASS(QString)
 
 
 
-
-class xClient
-{
-    QWebSocket * socket;
-    QThread *thread;
-    QString sId;
-    int id;
-public:
-    xClient (QWebSocket * socket, QThread *thread):socket(socket), thread(thread) {}
-    xClient (int id):id(id){this->sId=QString(id);}
-    QString sGetUserId(){return sId;}
-    int iGetUserId() {return id;}
-};
-class xClientList: public QList <xClient>
-{
-public:
-    bool seek (QString  user);
-    bool seek (int  user);
-    void insert (xClient user);
-    void insert (int user);
-    QString NewUserId();
-};
-
-class xCommands
-{
-    xClientList list;
-public:
-    xCommands(xClientList list);
-    QString GivId();
-    void actions(QJsonObject js);
-
-};
-
-struct xFunct
-{
-    QString fName;
-    void (*F) (QJsonObject args);
-};
-
-class xCallBack
-{
-    QList <xFunct> fList;
-public:
-    xCallBack()
-    {
-//        fList.append({"AskId",AskId});
-    }
-};
+//class _client: public QObject {
+//    Q_OBJECT
+//public:
+//    QWebSocket * socket; QThread * thread;
+//    _client(QWebSocket * socket, QThread * thread);
+//    bool operator ==(const _client & a);
+//    ~_client ();
+//signals:
+//    void quitThread();
+//};
 
 class Server : public QObject
 {
     Q_OBJECT
     QWebSocket *pSocket;
-    xClientList list;
-    xCommands *xC;
+    xClientList *list;
+    QMutex mutex;
 public:
     explicit Server(quint16 port, QObject *parent = nullptr);
     ~Server() override;
@@ -80,12 +43,13 @@ public:
 private slots:
     void onNewConnection();
     void processMessage(const QString &message);
-    void sendMessage(QString msg);
+//    _client * searchBySocket(QWebSocket *socket) ;
+    void sendMessage(QWebSocket * socket, QString msg);
     void socketDisconnected();
 
 private:
     QWebSocketServer *m_pWebSocketServer;
-    QList<QWebSocket *> m_clients;
+//    QList<_client *> m_clients;
 };
 
 #endif //CHATSERVER_H
