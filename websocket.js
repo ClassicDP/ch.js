@@ -27,7 +27,7 @@
 
 */
 function tabbss () {
-  for (var i = 0;i < 20;i++) {window.open('C:/Users/Dmitry/Documents/ch.js/start.html', '_blank');}
+  for (var i = 0;i < 200;i++) {window.open('C:/Users/Dmitry/Documents/ch.js/start.html', '_blank');}
 }
 function SocketCall (fName, fArgs) {
   var msg = { 'Call': fName, 'args': fArgs }

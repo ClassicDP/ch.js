@@ -67,7 +67,7 @@ void Server::onNewConnection()
     connect(xClient, SIGNAL (finished()), xClient, SLOT (deleteLater()));
     connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));
     connect(pSocket, SIGNAL(disconnected()), xClient, SLOT(disconnect()), Qt::DirectConnection);
-    connect(xClient, SIGNAL (destroyed()), thread, SLOT (quit()));
+    connect(xClient, SIGNAL (finished()), thread, SLOT (quit()));
     thread->start();
     xClient->moveToThread(thread);
 }
@@ -76,20 +76,8 @@ void Server::onNewConnection()
 //! [processMessage]
 void Server::processMessage( const QString &message)
 {
-    //    QWebSocket *pSender = qobject_cast<QWebSocket *>(sender());
-    //    for (QWebSocket *pClient : qAsConst(m_clients)) {
-    //        if (pClient != pSender) //don't echo message back to sender
-    //            pClient->sendTextMessage(message);
-    //    }
 }
 
-//_client *Server::searchBySocket(QWebSocket *socket)
-//{
-//    foreach(auto it, m_clients) {
-//        if (it->socket==socket)  return it;
-//    }
-//    return NULL;
-//}
 
 void Server::sendMessage(QWebSocket * socket, QString msg)
 {    
@@ -109,10 +97,3 @@ void Server::socketDisconnected()
 //! [socketDisconnected]
 
 
-//_client::_client(QWebSocket *socket, QThread *thread):socket(socket),thread(thread){
-//    connect(this, SIGNAL(quitThread()), thread, SLOT(quit()));
-//}
-
-//bool _client::operator ==(const _client &a) {return (socket==a.socket && thread==a.thread);}
-
-//_client::~_client() {qDebug () << "quit"; thread->quit(); }
