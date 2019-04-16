@@ -26,7 +26,9 @@
         }
 
 */
-
+function tabbss () {
+  for (var i = 0;i < 20;i++) {window.open('C:/Users/Dmitry/Documents/ch.js/start.html', '_blank');}
+}
 function SocketCall (fName, fArgs) {
   var msg = { 'Call': fName, 'args': fArgs }
   SendMsg(JSON.stringify(msg))
@@ -55,7 +57,7 @@ function SetId (args) {
 function SendMsg (_msg) {
   var att = 0
   function sWait () {
-    att += 1; //console.log('wait for socket')
+    att += 1; // console.log('wait for socket')
   }
   while (websocket.readyState != 1 && att < 3) {
     setTimeout(sWait, 1000)}
@@ -73,14 +75,14 @@ function ShowPoints (list) {
   xShowPoints()
 }
 function GreenPoints (p) {
- // console.log(p)
+  // console.log(p)
 }
 function initWebSocket () {
   document.getElementById('b1').textContent = 'Connected!'
   for (var ii = 0; ii < 1; ii++) {
     websocket.ii = ii
     websocket.onerror = function (event) {
-      //console.log(this.ii, event)
+      // console.log(this.ii, event)
       this.close()
     }
     websocket.onopen = function () {}
@@ -98,5 +100,5 @@ function initWebSocket () {
 function sendMessage () {
   if (websocket.readyState == 1)
     SendMsg(document.getElementById('messageInput').value)
-  else {} //console.log('WS state', websocket.readyState)
+  else {} // console.log('WS state', websocket.readyState)
 }

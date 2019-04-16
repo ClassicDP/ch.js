@@ -15,13 +15,12 @@ QJsonObject jsonFromString(const QString &in)
     return jsonObject;
 }
 
-xSocketClient::xSocketClient(xClientList *list, QWebSocket *socket): socket(socket),list(list),mutex(QMutex::Recursive) {
-    timer = new QTimer;
-    timer->setSingleShot(true);
-    connect(timer, SIGNAL(timeout()), this, SLOT(timeOUT()));
-    connect(this, SIGNAL(timerStart(int )), timer,SLOT(start(int )));
-    connect(this, SIGNAL(timerStop()), timer,SLOT(stop()));
-    connect(this, SIGNAL(finished()), this, SLOT(deleteLater()), Qt::DirectConnection);
+xSocketClient::xSocketClient(xClientList *list, QWebSocket *socket): socket(socket),list(list),msgMutex(QMutex::Recursive) {
+//    timer = new QTimer;
+//    timer->setSingleShot(true);
+//    connect(timer, SIGNAL(timeout()), this, SLOT(timeOUT()));
+//    connect(this, SIGNAL(timerStart(int )), timer,SLOT(start(int )));
+//    connect(this, SIGNAL(timerStop()), timer,SLOT(stop()));
 }
 
 void xSocketClient::start()
@@ -45,22 +44,22 @@ void xSocketClient::start()
     connect(client,&xClient::Call,this,&xSocketClient::CallFunct);
     res=CallFunct("SetChOnBoard", client->Pos->toJson());
     qDebug () <<"4" << this << res;
+
 }
 
 
 void xSocketClient::processCmd(QJsonObject &js)
 {
     if (js["cmd"]=="loop") {
+        cmdMutex.lock();
         qDebug () << CallFunct("SetChOnBoard", client->Pos->toJson());
+        cmdMutex.unlock();
     }
 }
 
 xSocketClient::~xSocketClient()
 {
-    mutex.lock();
-    emit timerStop();
-    timer->deleteLater();
-    mutex.unlock();
+//    timer->deleteLater();
 }
 
 
@@ -71,15 +70,22 @@ QJsonObject xSocketClient::CallFunct(QString functName, QJsonObject args)
     js["funct"]=functName;
     js["args"]=args;
     msgRes=false;
-    emit timerStart(20);
     qDebug () <<this << js;
     emit sendMsg(socket, jsonToString(js));
     QEventLoop  loop;
-    QMetaObject::Connection conn =  connect(this, SIGNAL(loopExit()), &loop, SLOT(quit()));
+    connect(this, SIGNAL(loopExit()), &loop, SLOT(quit()));
+    QTimer timer;
+        connect(&timer, SIGNAL(timeout()), this, SLOT(timeOUT()));
+        connect(this, SIGNAL(timerStart(int )), &timer,SLOT(start(int )));
+        connect(this, SIGNAL(timerStop()), &timer,SLOT(stop()));
+
+    timer.setSingleShot(true);
+    timer.start(1);
     loop.exec();
-    disconnect(conn);
     qDebug  () << "loop exit";
-    if (msgRes) {return jsonFromString(msg);}
+    tmrMutex.lock();
+    if (msgRes) {tmrMutex.unlock();return jsonFromString(msg);}
+    tmrMutex.unlock();
     QJsonObject ret;
     ret["error"]="time_out";
     return ret;
@@ -87,23 +93,39 @@ QJsonObject xSocketClient::CallFunct(QString functName, QJsonObject args)
 
 void xSocketClient::timeOUT()
 {
-    mutex.lock();
+    tmrMutex.lock();
     emit loopExit();
-    mutex.unlock();
+    tmrMutex.unlock();
 }
 
 
 
 void xSocketClient::SocketMsg(QString msg)
 {
-    mutex.lock();
+    msgMutex.lock();
     qDebug () << QThread::currentThread();
-    emit timerStop();
     QJsonObject js=jsonFromString(msg);
     qDebug () <<this<<js;
     processCmd(js);
-    if (js["complete"]=="yes") {this->msg=msg; msgRes=true;}
-    mutex.unlock();
+    if (js["complete"]=="yes") {
+        tmrMutex.lock();
+        emit timerStop();
+        this->msg=msg; msgRes=true;
+        tmrMutex.unlock();
+        emit loopExit();
+    }
+    msgMutex.unlock();
     qDebug () << "xSocketThread::SocketMsg --- unlock";
-    emit loopExit();
+
+}
+
+void xSocketClient::disconnect()
+{
+    msgMutex.lock();
+    msgMutex.unlock();
+    tmrMutex.lock();
+    tmrMutex.unlock();
+    cmdMutex.lock();
+    cmdMutex.unlock();
+    emit finished();
 }

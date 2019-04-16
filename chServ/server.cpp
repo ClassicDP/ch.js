@@ -60,16 +60,16 @@ void Server::onNewConnection()
             xClient, &xSocketClient::SocketMsg, Qt::QueuedConnection);
     connect(xClient, &xSocketClient::sendMsg,
             this, &Server::sendMessage, Qt::QueuedConnection);
-    QThread* thread = new QThread;
+    xThread* thread = new xThread;
     xClient->moveToThread(thread);
     connect(xClient, SIGNAL (error(QString)), this, SLOT (errorString(QString)));
     connect(thread, SIGNAL (started()), xClient, SLOT (start()));
-    connect(xClient, SIGNAL (finished()), thread, SLOT (quit()));
     connect(xClient, SIGNAL (finished()), xClient, SLOT (deleteLater()));
     connect(thread, SIGNAL (finished()), thread, SLOT (deleteLater()));
+    connect(pSocket, SIGNAL(disconnected()), xClient, SLOT(disconnect()), Qt::DirectConnection);
+    connect(xClient, SIGNAL (destroyed()), thread, SLOT (quit()));
     thread->start();
-    QThread * xThread= new QThread;
-    xClient->moveToThread(xThread);
+    xClient->moveToThread(thread);
 }
 //! [onNewConnection]
 
@@ -103,21 +103,8 @@ void Server::sendMessage(QWebSocket * socket, QString msg)
 //! [socketDisconnected]
 void Server::socketDisconnected()
 {
-    mutex.lock();
     QWebSocket *pClient = qobject_cast<QWebSocket *>(sender());
     QTextStream(stdout) << getIdentifier(pClient) << " disconnected!\n";
-//    _client * client=searchBySocket(pClient);
-//    pClient->abort();
-//    pClient->deleteLater();
-//    if (client)
-    {
-
-//        m_clients.removeAll(client);
-
-//        delete client;
-    }
-    mutex.unlock();
-    qDebug () << "Disc complete";
 }
 //! [socketDisconnected]
 
